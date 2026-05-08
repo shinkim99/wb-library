@@ -73,6 +73,15 @@ function loadContent(id){return new Promise((resolve,reject)=>{if(!db)return res
 function deleteContent(id){return new Promise(resolve=>{if(!db)return resolve();
   const tx=db.transaction("content","readwrite");tx.objectStore("content").delete(id);tx.oncomplete=()=>resolve();});}
 
+// ===== Auth & Crypto =====
+let _pw=null,_authFails=0,_authLockUntil=0,_authTimer=null;
+async function sha256(str){const d=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(str));return Array.from(new Uint8Array(d)).map(b=>b.toString(16).padStart(2,"0")).join("");}
+async function deriveAESKey(pw,salt){const km=await crypto.subtle.importKey("raw",new TextEncoder().encode(pw),"PBKDF2",false,["deriveKey"]);return crypto.subtle.deriveKey({name:"PBKDF2",salt,iterations:100000,hash:"SHA-256"},km,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);}
+async function encryptText(text,pw){if(!text||!pw)return"";const salt=crypto.getRandomValues(new Uint8Array(16));const iv=crypto.getRandomValues(new Uint8Array(12));const k=await deriveAESKey(pw,salt);const enc=await crypto.subtle.encrypt({name:"AES-GCM",iv},k,new TextEncoder().encode(text));const out=new Uint8Array(28+enc.byteLength);out.set(salt);out.set(iv,16);out.set(new Uint8Array(enc),28);return btoa(String.fromCharCode(...out));}
+async function decryptText(b64,pw){try{const buf=new Uint8Array(atob(b64).split("").map(c=>c.charCodeAt(0)));const k=await deriveAESKey(pw,buf.slice(0,16));const dec=await crypto.subtle.decrypt({name:"AES-GCM",iv:buf.slice(16,28)},k,buf.slice(28));return new TextDecoder().decode(dec);}catch{return"";}}
+async function decryptKeys(pw){for(const id of Object.keys(S.settings.providers||{})){const enc=S.settings.providers[id]?.keyEnc;if(enc){const dec=await decryptText(enc,pw);if(dec)S.settings.providers[id].key=dec;}}}
+async function changePw(cur,nw,cfm){const ch=await sha256(cur);if(ch!==localStorage.getItem("jarvis-auth"))return"현재 비밀번호가 틀렸습니다.";if(nw!==cfm)return"새 비밀번호가 일치하지 않습니다.";if(nw.length<4)return"비밀번호는 4자 이상이어야 합니다.";localStorage.setItem("jarvis-auth",await sha256(nw));_pw=nw;sessionStorage.setItem("jarvis-session",nw);await saveS();return null;}
+
 // ===== Constants =====
 const PLATFORMS={github:"GitHub",n8n:"n8n",standalone:"Standalone",claude:"Claude"};
 const STATUSES={active:"운영중",dev:"개발중",idea:"아이디어",archived:"보관"};
@@ -113,7 +122,7 @@ function load(){
   if(!S.settings.defaultAI)S.settings.defaultAI="claude";
 }
 function save(){try{localStorage.setItem("jarvis-programs",JSON.stringify(S.programs));localStorage.setItem("jarvis-workbenches",JSON.stringify(S.workbenches));}catch(e){console.error("save error",e);}}
-function saveS(){try{localStorage.setItem("jarvis-settings",JSON.stringify(S.settings));}catch(e){}}
+async function saveS(){try{const t=JSON.parse(JSON.stringify(S.settings));if(_pw){for(const id of Object.keys(t.providers||{})){const k=t.providers[id].key||"";if(k){t.providers[id].keyEnc=await encryptText(k,_pw);t.providers[id].key="";}}}localStorage.setItem("jarvis-settings",JSON.stringify(t));}catch(e){}}
 function tt(m,c){S.toast=m;S.toastColor=c||"var(--green)";render();setTimeout(()=>{S.toast=null;render();},2500);}
 function sel(){return S.selId?S.programs.find(p=>p.id===S.selId):null;}
 function sn(s){return typeof s==="string"?s:s.n;}
@@ -304,6 +313,17 @@ function showSettings(){
       h("span",{style:{fontSize:"11px",color:wb.isDefault?"var(--accent)":"var(--text2)",flex:"1"}},wb.name+(wb.isDefault?" (default)":"")),
       mkBtn("✕","var(--text3)",()=>{if(S.workbenches.length<=1)return;S.workbenches.splice(i,1);save();bg.remove();showSettings();},"btn-s"))),
     mkBtn("+ 추가","var(--accent)",()=>{const n=prompt("워크벤치 이름:");if(n){S.workbenches.push({id:"wb-"+Date.now(),name:n});save();bg.remove();showSettings();}},"btn-s")));
+  m.appendChild(h("div",{class:"setting-section"},
+    h("h4",{},"🔒 비밀번호 변경"),
+    h("div",{class:"field"},h("label",{},"현재 비밀번호"),h("input",{type:"password",id:"pw-cur",placeholder:"현재 비밀번호"})),
+    h("div",{class:"field"},h("label",{},"새 비밀번호"),h("input",{type:"password",id:"pw-new",placeholder:"4자 이상"})),
+    h("div",{class:"field"},h("label",{},"확인"),h("input",{type:"password",id:"pw-cfm",placeholder:"새 비밀번호 확인"})),
+    h("div",{id:"pw-msg",style:{fontSize:"10px",minHeight:"14px",marginBottom:"6px"}}),
+    mkBtn("변경","var(--blue)",async()=>{
+      const err=await changePw(document.getElementById("pw-cur")?.value||"",document.getElementById("pw-new")?.value||"",document.getElementById("pw-cfm")?.value||"");
+      const msg=document.getElementById("pw-msg");
+      if(msg){msg.textContent=err||"✓ 비밀번호가 변경되었습니다.";msg.style.color=err?"var(--red)":"var(--green)";}
+    },"btn-full")));
   m.appendChild(h("div",{class:"setting-section"},
     h("h4",{},"💾 백업 / 복원"),
     h("div",{style:{fontSize:"10px",color:"var(--text3)",marginBottom:"8px"}},"JSON 파일 하나로 PC 이전시에도 모든 설정·데이터 복원"),
@@ -668,19 +688,61 @@ function render(){
     }ml.appendChild(ct);}
   main.appendChild(ml);main.appendChild(renderAI());body.appendChild(main);app.appendChild(body);}
 
-// ===== Init =====
-async function init(){
-  await openDB();
-  load();
-  // Check content availability for each program
-  for(const p of S.programs){
-    if(p.hasContent){
-      const content=await loadContent(p.id);
-      if(content)contentCache[p.id]=content;
-      else{p.hasContent=false;p.contentSize=0;}
+function showAuthScreen(mode,err){
+  if(!S.dark)document.body.classList.add("light");else document.body.classList.remove("light");
+  if(_authTimer){clearInterval(_authTimer);_authTimer=null;}
+  const app=document.getElementById("app");app.innerHTML="";
+  const isLocked=_authLockUntil>Date.now();const lockSec=isLocked?Math.ceil((_authLockUntil-Date.now())/1000):0;
+  const mkPI=(id,ph)=>h("input",{type:"password",id,placeholder:ph,style:{width:"100%",padding:"9px 10px",border:"1px solid var(--border)",borderRadius:"7px",background:"var(--bg3)",color:"var(--text)",fontSize:"13px",fontFamily:"inherit",outline:"none",marginBottom:"8px"}});
+  const pwInp=mkPI("auth-pw",mode==="setup"?"새 비밀번호 (4자 이상)":"비밀번호");
+  const pw2Inp=mode==="setup"?mkPI("auth-pw2","비밀번호 확인"):null;
+  const btn=h("button",{id:"auth-submit",style:{width:"100%",padding:"10px",borderRadius:"8px",border:"none",background:isLocked?"var(--bg3)":"var(--accent)",color:isLocked?"var(--text3)":"#fff",fontSize:"13px",fontWeight:600,cursor:isLocked?"not-allowed":"pointer",fontFamily:"inherit",marginTop:"4px"}},isLocked?"잠김 ("+lockSec+"초)":(mode==="setup"?"비밀번호 설정":"로그인"));
+  async function submit(){
+    if(_authLockUntil>Date.now())return;
+    const pw=document.getElementById("auth-pw")?.value||"";
+    if(!pw){showAuthScreen(mode,"비밀번호를 입력하세요.");return;}
+    if(mode==="setup"){
+      const pw2=document.getElementById("auth-pw2")?.value||"";
+      if(pw!==pw2){showAuthScreen(mode,"비밀번호가 일치하지 않습니다.");return;}
+      if(pw.length<4){showAuthScreen(mode,"비밀번호는 4자 이상이어야 합니다.");return;}
+      localStorage.setItem("jarvis-auth",await sha256(pw));
+      _pw=pw;sessionStorage.setItem("jarvis-session",pw);
+      await loadContents();render();
+    }else{
+      const hash=await sha256(pw);
+      if(hash===localStorage.getItem("jarvis-auth")){
+        _authFails=0;_pw=pw;sessionStorage.setItem("jarvis-session",pw);
+        await decryptKeys(pw);await loadContents();render();
+      }else{
+        _authFails++;
+        if(_authFails>=3){_authLockUntil=Date.now()+30000;_authFails=0;showAuthScreen("login","3회 실패 — 30초 대기 후 재시도");setTimeout(()=>showAuthScreen("login"),30000);}
+        else showAuthScreen("login","잘못된 비밀번호입니다. ("+(3-_authFails)+"회 남음)");
+      }
     }
   }
-  render();
+  btn.addEventListener("click",submit);
+  [pwInp,pw2Inp].forEach(inp=>inp?.addEventListener("keydown",e=>{if(e.key==="Enter")submit();}));
+  app.appendChild(h("div",{style:{display:"flex",alignItems:"center",justifyContent:"center",height:"100vh",background:"var(--bg)"}},
+    h("div",{style:{width:"340px",padding:"32px 28px",borderRadius:"16px",background:"var(--bg2)",border:"1px solid var(--border)"}},
+      h("div",{style:{textAlign:"center",marginBottom:"24px"}},
+        h("div",{style:{width:"52px",height:"52px",borderRadius:"12px",background:"linear-gradient(135deg,#4a90d9,#7c6cf0)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"24px",fontWeight:"700",color:"#fff",margin:"0 auto 12px"}},"J"),
+        h("div",{style:{fontSize:"18px",fontWeight:700}},"JARVIS Workbench"),
+        h("div",{style:{fontSize:"11px",color:"var(--text3)",marginTop:"4px"}},mode==="setup"?"최초 접속 — 비밀번호를 설정하세요":"비밀번호를 입력하세요")),
+      err?h("div",{style:{padding:"6px 10px",borderRadius:"6px",background:"color-mix(in srgb,var(--red) 10%,transparent)",color:"var(--red)",fontSize:"11px",marginBottom:"10px",textAlign:"center"}},err):null,
+      pwInp,pw2Inp,btn,
+      h("div",{style:{fontSize:"9px",color:"var(--text3)",textAlign:"center",marginTop:"14px",lineHeight:"1.6"}},"SHA-256 인증 · AES-GCM API Key 암호화"))));
+  setTimeout(()=>document.getElementById("auth-pw")?.focus(),50);
+  if(isLocked){_authTimer=setInterval(()=>{if(_authLockUntil<=Date.now()){clearInterval(_authTimer);_authTimer=null;showAuthScreen("login");}else{const b=document.getElementById("auth-submit");if(b)b.textContent="잠김 ("+Math.ceil((_authLockUntil-Date.now())/1000)+"초)";}},1000);}
+}
+async function loadContents(){for(const p of S.programs){if(p.hasContent){const c=await loadContent(p.id);if(c)contentCache[p.id]=c;else{p.hasContent=false;p.contentSize=0;}}}}
+
+// ===== Init =====
+async function init(){
+  await openDB();load();
+  const storedHash=localStorage.getItem("jarvis-auth");
+  const sessionPw=sessionStorage.getItem("jarvis-session");
+  if(storedHash&&sessionPw){const sessionHash=await sha256(sessionPw);if(sessionHash===storedHash){_pw=sessionPw;await decryptKeys(_pw);await loadContents();render();return;}}
+  showAuthScreen(storedHash?"login":"setup");
 }
 init();
 </script></body></html>
