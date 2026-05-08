@@ -1,0 +1,686 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><title>JARVIS Workbench v1.2</title>
+<style>
+:root{--bg:#0c1017;--bg2:#131a24;--bg3:#1a2332;--border:#1e2d3d;--text:#d4d8e0;--text2:#8892a4;--text3:#4a5568;
+  --accent:#7c6cf0;--green:#34d399;--amber:#f59e0b;--red:#ef4444;--blue:#60a5fa;--pink:#e879f9}
+.light{--bg:#f7f8fa;--bg2:#fff;--bg3:#f0f2f5;--border:#e0e4ea;--text:#1f2937;--text2:#6b7280;--text3:#9ca3af;
+  --accent:#6d5dd3;--green:#10b981;--amber:#d97706;--red:#dc2626;--blue:#3b82f6;--pink:#c026d3}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;transition:background .2s}
+.topbar{padding:6px 12px;border-bottom:1px solid var(--border);background:var(--bg2);display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:wrap}
+.sidebar{width:240px;border-right:1px solid var(--border);background:var(--bg2);display:flex;flex-direction:column;flex-shrink:0}
+.tab-bar{display:flex;border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:7px 0;border:none;border-bottom:2px solid transparent;background:none;color:var(--text3);font-size:10px;font-weight:500;cursor:pointer;font-family:inherit}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.tree-list{flex:1;overflow:auto;padding:4px 5px}
+.ti{padding:5px 8px;border-radius:5px;cursor:pointer;display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--text2);transition:background .1s;user-select:none}
+.ti:hover{background:var(--bg3)}.ti.act{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);font-weight:500}
+.ti-wb{padding:6px 8px;border-radius:6px;font-size:11px;font-weight:600;color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,transparent);border:1px solid color-mix(in srgb,var(--accent) 15%,transparent);margin:4px 0 2px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.btn{padding:6px 12px;border:none;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;font-weight:500;text-align:center;white-space:nowrap;transition:all .12s}
+.btn:hover{filter:brightness(1.15)}.btn-s{padding:3px 7px;font-size:10px}.btn-full{width:100%}
+.main{flex:1;overflow:auto;padding:16px 20px;display:flex;gap:16px}
+.main-left{flex:1;min-width:0;overflow:auto}.main-right{width:340px;flex-shrink:0;display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;background:var(--bg2);overflow:hidden}
+.tag{font-size:10px;padding:2px 8px;border-radius:6px;font-weight:500;display:inline-block}
+.modal-bg{position:fixed;inset:0;background:#00000055;display:flex;align-items:center;justify-content:center;z-index:100}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:20px;width:500px;max-height:85vh;overflow:auto}
+.field{margin-bottom:8px}.field label{font-size:10px;color:var(--text3);display:block;margin-bottom:3px}
+.field input,.field select{width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);padding:6px 16px;border-radius:7px;color:#fff;font-size:11px;font-weight:600;z-index:200}
+.link-btn{padding:3px 7px;border-radius:5px;color:var(--text2);font-size:10px;background:none;border:none;cursor:pointer;font-family:inherit}.link-btn:hover{background:var(--bg3);color:var(--text)}
+.divider{width:1px;height:22px;background:var(--border);flex-shrink:0}
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sec-title{font-size:12px;font-weight:600;color:var(--text2)}
+.mod-row{padding:6px 10px;margin-bottom:3px;border-radius:6px;background:var(--bg3);display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.sk-row{padding:6px 10px;margin-bottom:3px;border-radius:6px;background:color-mix(in srgb,var(--green) 6%,transparent);border:1px solid color-mix(in srgb,var(--green) 12%,transparent);font-size:11px;color:var(--green);display:flex;justify-content:space-between;align-items:center}
+.err-row{padding:6px 10px;margin-bottom:3px;border-radius:6px;background:color-mix(in srgb,var(--red) 5%,transparent);border:1px solid color-mix(in srgb,var(--red) 12%,transparent);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;color:var(--red)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.desc-box{padding:4px 10px 8px 28px;font-size:10px;color:var(--text3);line-height:1.5;background:var(--bg3);border-radius:0 0 6px 6px;margin-top:-3px;margin-bottom:3px}
+.ai-msg{padding:10px 12px;margin:6px 0;border-radius:8px;font-size:12px;line-height:1.7;white-space:pre-wrap;word-break:break-word}
+.ai-msg.user{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);margin-left:40px;font-size:11px}
+.ai-msg.bot{background:var(--bg3);color:var(--text);margin-right:10px}
+.ai-msg.err{background:color-mix(in srgb,var(--red) 10%,transparent);color:var(--red)}
+.ai-msg.sys{background:color-mix(in srgb,var(--green) 10%,transparent);color:var(--green);font-size:11px;text-align:center;margin:4px 20px}
+.ai-typing{padding:10px;color:var(--text3);font-size:11px}.ai-typing::after{content:"...";animation:dots 1s infinite}@keyframes dots{0%{content:"."}33%{content:".."}66%{content:"..."}}
+.action-card{padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg2);cursor:pointer;transition:all .15s}
+.action-card:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 5%,transparent)}
+.action-card h5{font-size:12px;font-weight:600;margin-bottom:2px}.action-card p{font-size:10px;color:var(--text3)}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;width:100%;max-width:500px}
+.stat-card{padding:12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);text-align:center}
+.stat-card .num{font-size:22px;font-weight:700}.stat-card .lbl{font-size:10px;color:var(--text3);margin-top:2px}
+.api-status{padding:6px 10px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;font-size:10px;color:var(--text3)}
+.ai-input-bar{padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px}
+.ai-input-bar input{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg3);color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.guide-card{padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg2);margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.guide-card:hover{border-color:var(--accent)}
+.guide-card h4{font-size:13px;font-weight:600;margin-bottom:4px}.guide-card p{font-size:11px;color:var(--text2);line-height:1.6}
+.guide-num{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.setting-section{padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--bg3)}
+.setting-section h4{font-size:12px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sk-compare{padding:8px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border);margin-bottom:6px;font-size:10px}
+.sk-compare .from{color:var(--text3);font-size:9px;margin-top:2px}
+</style></head><body>
+<div id="app" style="display:flex;flex-direction:column;height:100vh"></div>
+<script>
+// ===== IndexedDB for file content =====
+const DB_NAME="jarvis-wb-content";const DB_VER=1;let db=null;
+function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VER);
+  req.onupgradeneeded=e=>{e.target.result.createObjectStore("content",{keyPath:"id"});};
+  req.onsuccess=e=>{db=e.target.result;resolve(db);};req.onerror=e=>reject(e);});}
+function saveContent(id,content){return new Promise((resolve,reject)=>{if(!db)return resolve();
+  const tx=db.transaction("content","readwrite");tx.objectStore("content").put({id,content,size:content.length});
+  tx.oncomplete=()=>resolve();tx.onerror=e=>reject(e);});}
+function loadContent(id){return new Promise((resolve,reject)=>{if(!db)return resolve(null);
+  const tx=db.transaction("content","readonly");const req=tx.objectStore("content").get(id);
+  req.onsuccess=()=>resolve(req.result?.content||null);req.onerror=()=>resolve(null);});}
+function deleteContent(id){return new Promise(resolve=>{if(!db)return resolve();
+  const tx=db.transaction("content","readwrite");tx.objectStore("content").delete(id);tx.oncomplete=()=>resolve();});}
+
+// ===== Constants =====
+const PLATFORMS={github:"GitHub",n8n:"n8n",standalone:"Standalone",claude:"Claude"};
+const STATUSES={active:"운영중",dev:"개발중",idea:"아이디어",archived:"보관"};
+const LANGS=["HTML","JSX","Python","JavaScript","JSON","Markdown","PowerShell","Other"];
+const LINKS=[{n:"Claude.ai",u:"https://claude.ai"},{n:"ChatGPT",u:"https://chat.openai.com"},{n:"Gemini",u:"https://gemini.google.com"},{n:"Perplexity",u:"https://perplexity.ai"},{n:"GitHub",u:"https://github.com"},{n:"n8n",u:"https://n8n.io"}];
+const LANG_MAP={py:"Python",js:"JavaScript",jsx:"JSX",html:"HTML",json:"JSON",md:"Markdown",ps1:"PowerShell",ts:"JavaScript",css:"HTML"};
+const AI_PROVIDERS=[
+  {id:"claude",name:"Claude",color:"#7c6cf0",models:["claude-sonnet-4-20250514","claude-haiku-4-5-20251001"],dm:"claude-sonnet-4-20250514"},
+  {id:"gpt",name:"GPT",color:"#10b981",models:["gpt-4o","gpt-4o-mini"],dm:"gpt-4o"},
+  {id:"gemini",name:"Gemini",color:"#60a5fa",models:["gemini-2.0-flash","gemini-2.5-pro"],dm:"gemini-2.0-flash"}
+];
+const INIT_WB=[{id:"wb-ks",name:"JARVIS-KS",isDefault:true},{id:"wb-kii",name:"JARVIS-KII"},{id:"wb-work",name:"Workbench"}];
+const INIT_PROG=[
+  {id:"prism",wbId:"wb-ks",name:"PRISM",desc:"Parallel Review & Insight Synthesis Machine",lang:"HTML",platform:"standalone",status:"dev",ver:"v0.5",hasContent:false,contentSize:0,
+    skills:[{n:"strategy-engine",d:"6가지 태스크 유형별 전략 선택",from:"PRISM"},{n:"pipeline",d:"SSE 파이프라인 관리",from:"PRISM"},{n:"pricing",d:"토큰 비용 계산",from:"PRISM"}],
+    modules:[{n:"FastAPI backend",d:"Python FastAPI REST API",from:"PRISM"},{n:"SSE streaming",d:"Server-Sent Events",from:"PRISM"},{n:"Flowchart UI",d:"파이프라인 시각화",from:"PRISM"},{n:"Report finalizer",d:"최종 리포트 생성",from:"PRISM"},{n:"Dark/Light theme",d:"테마 전환",from:"PRISM"}],
+    errors:["Finalizer max_tokens 8000+","Gemini 403 핸들링","Mid-pipeline pause 미구현"],github:"",notes:"v5_Final 디자인 완료.",files:[]},
+  {id:"wb-app",wbId:"wb-work",name:"JARVIS Workbench",desc:"프로그램 관리 대시보드",lang:"HTML",platform:"standalone",status:"dev",ver:"v1.2",hasContent:false,contentSize:0,
+    skills:[],modules:[{n:"Program Library",d:"프로그램 CRUD",from:"Workbench"},{n:"AI Analyzer",d:"멀티 AI 분석",from:"Workbench"},{n:"Skill Registry",d:"Skill 누적 관리",from:"Workbench"}],
+    errors:[],github:"",notes:"현재 이 프로그램",files:[]}
+];
+
+// ===== State =====
+let S={workbenches:[],programs:[],selType:null,selId:null,selSub:null,dark:true,sideTab:"programs",exp:{},toast:null,toastColor:null,descOpen:{},aiMessages:[],aiLoading:false,settings:{providers:{},defaultAI:"claude"},skillCode:{},skillCodeOpen:{}};
+// In-memory content cache (loaded from IndexedDB on demand)
+let contentCache={};
+
+function load(){
+  function migrateKey(nk,ok){if(!localStorage.getItem(nk)&&localStorage.getItem(ok)){localStorage.setItem(nk,localStorage.getItem(ok));localStorage.removeItem(ok);}}
+  migrateKey("jarvis-programs","jwb14-p");migrateKey("jarvis-workbenches","jwb14-w");migrateKey("jarvis-settings","jwb14-s");
+  try{const d=localStorage.getItem("jarvis-programs");if(d)S.programs=JSON.parse(d);else S.programs=JSON.parse(JSON.stringify(INIT_PROG));}catch(e){S.programs=JSON.parse(JSON.stringify(INIT_PROG));}
+  try{const w=localStorage.getItem("jarvis-workbenches");if(w)S.workbenches=JSON.parse(w);else S.workbenches=JSON.parse(JSON.stringify(INIT_WB));}catch(e){S.workbenches=JSON.parse(JSON.stringify(INIT_WB));}
+  const validWbIds=new Set(S.workbenches.map(w=>w.id));
+  S.programs.forEach(p=>{if(!validWbIds.has(p.wbId))p.wbId="wb-ks";});
+  try{const s=localStorage.getItem("jarvis-settings");if(s)S.settings=JSON.parse(s);}catch(e){}
+  if(!S.settings.providers)S.settings.providers={};
+  AI_PROVIDERS.forEach(p=>{if(!S.settings.providers[p.id])S.settings.providers[p.id]={key:"",model:p.dm};});
+  if(!S.settings.defaultAI)S.settings.defaultAI="claude";
+}
+function save(){try{localStorage.setItem("jarvis-programs",JSON.stringify(S.programs));localStorage.setItem("jarvis-workbenches",JSON.stringify(S.workbenches));}catch(e){console.error("save error",e);}}
+function saveS(){try{localStorage.setItem("jarvis-settings",JSON.stringify(S.settings));}catch(e){}}
+function tt(m,c){S.toast=m;S.toastColor=c||"var(--green)";render();setTimeout(()=>{S.toast=null;render();},2500);}
+function sel(){return S.selId?S.programs.find(p=>p.id===S.selId):null;}
+function sn(s){return typeof s==="string"?s:s.n;}
+function sd(s){return typeof s==="string"?"":s.d||"";}
+function allSk(){const a=[];S.programs.forEach(p=>(p.skills||[]).forEach(s=>a.push({...typeof s==="string"?{n:s,d:""}:s,from:s.from||p.name,progId:p.id})));return a;}
+function allMo(){const a=[];S.programs.forEach(p=>(p.modules||[]).forEach(m=>a.push({...typeof m==="string"?{n:m,d:""}:m,from:m.from||p.name,progId:p.id})));return a;}
+function defProv(){return AI_PROVIDERS.find(a=>a.id===S.settings.defaultAI)||AI_PROVIDERS[0];}
+function provCfg(id){return S.settings.providers[id]||{};}
+
+// Get content for a program (from cache or IndexedDB)
+async function getContent(progId){
+  if(contentCache[progId])return contentCache[progId];
+  const content=await loadContent(progId);
+  if(content)contentCache[progId]=content;
+  return content;
+}
+
+function h(tag,props,...ch){const el=document.createElement(tag);if(props)Object.entries(props).forEach(([k,v])=>{if(k==="class")el.className=v;else if(k==="style"&&typeof v==="object")Object.assign(el.style,v);else if(k.startsWith("on"))el.addEventListener(k.slice(2).toLowerCase(),v);else el.setAttribute(k,v);});ch.flat(Infinity).forEach(c=>{if(c==null||c===false)return;if(typeof c==="string"||typeof c==="number")el.appendChild(document.createTextNode(c));else el.appendChild(c);});return el;}
+function mkBtn(t,c,fn,cls){return h("button",{class:"btn "+(cls||""),style:{background:c+"20",color:c,border:"1px solid "+c+"44"},onClick:fn},t);}
+function mkTI(label,icon,color,depth,active,onClick,count,badge){
+  const d=h("div",{class:"ti"+(active?" act":""),style:{paddingLeft:(8+depth*14)+"px"},onClick},
+    h("span",{style:{fontSize:"10px",color,width:"12px",textAlign:"center",flexShrink:"0"}},icon),
+    h("span",{style:{flex:"1",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},label));
+  if(count!==undefined)d.appendChild(h("span",{style:{fontSize:"8px",color:"var(--text3)",background:"var(--bg3)",padding:"1px 4px",borderRadius:"3px"}},""+count));
+  if(badge)d.appendChild(h("span",{style:{fontSize:"7px",padding:"1px 4px",borderRadius:"3px",background:badge.c+"18",color:badge.c}},badge.t));return d;}
+function parseFileName(fn){const base=fn.replace(/\.[^.]+$/,"");const ext=fn.match(/\.(\w+)$/)?.[1]||"";const rm=base.match(/[_\s-]*(Rev\d+|v\d+[\.\d]*)/i);let ver=rm?rm[1]:"Rev01";let name=base;if(rm)name=base.replace(rm[0],"");name=name.replace(/[-_]+/g," ").trim();return{name,ver,ext,lang:LANG_MAP[ext]||"Other"};}
+
+// ===== AI API =====
+async function callAI(messages,mode){
+  const prov=defProv();const cfg=provCfg(prov.id);
+  if(!cfg.key)throw new Error(prov.name+" API Key가 필요합니다. ⚙ Settings에서 입력하세요.");
+  const sys=mode==="json"?"You are JARVIS. Respond ONLY with valid JSON, no markdown backticks.":"You are JARVIS, R&D workbench assistant. Respond in Korean with English technical terms. Be concise.";
+  if(prov.id==="claude"){
+    const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"Content-Type":"application/json","x-api-key":cfg.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:cfg.model||prov.dm,max_tokens:4000,system:sys,messages})});
+    if(!res.ok)throw new Error(prov.name+" "+res.status);
+    return(await res.json()).content?.map(c=>c.text||"").join("")||"";
+  }else if(prov.id==="gpt"){
+    const res=await fetch("https://api.openai.com/v1/chat/completions",{method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+cfg.key},
+      body:JSON.stringify({model:cfg.model||prov.dm,max_tokens:4000,messages:[{role:"system",content:sys},...messages]})});
+    if(!res.ok)throw new Error(prov.name+" "+res.status);
+    return(await res.json()).choices?.[0]?.message?.content||"";
+  }else if(prov.id==="gemini"){
+    const res=await fetch("https://generativelanguage.googleapis.com/v1beta/models/"+(cfg.model||prov.dm)+":generateContent?key="+cfg.key,{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}))})});
+    if(!res.ok)throw new Error(prov.name+" "+res.status);
+    return(await res.json()).candidates?.[0]?.content?.parts?.[0]?.text||"";
+  }
+}
+
+async function analyzeAndApply(p,action){
+  const prov=defProv();
+  S.aiMessages.push({role:"user",content:"["+action+"] "+p.name});S.aiLoading=true;render();
+  const content=await getContent(p.id);
+  const code=content?(content.length>12000?content.slice(0,8000)+"\n\n... (중간 생략: "+(content.length-12000)+" bytes) ...\n\n"+content.slice(-4000):content):"(코드 없음 — 파일을 드래그하여 업로드하세요)";
+  const ctx="프로그램: "+p.name+"\n설명: "+p.desc+"\n언어: "+p.lang+"\n모듈: "+(p.modules||[]).map(sn).join(", ")+"\nSkill: "+(p.skills||[]).map(sn).join(", ");
+  try{
+    if(action==="analyze"||action==="skill"){
+      const jsonPrompt=action==="analyze"
+        ?ctx+"\n\n코드:\n"+code+"\n\n이 프로그램을 분석하여 JSON으로 응답:\n{\"modules\":[{\"n\":\"모듈명\",\"d\":\"설명\"}],\"skills\":[{\"n\":\"스킬명\",\"d\":\"설명\"}],\"errors\":[\"에러설명\"],\"summary\":\"분석요약\"}"
+        :ctx+"\n\n코드:\n"+code+"\n\n모듈을 Skill로 변환. JSON 응답:\n{\"skills\":[{\"n\":\"스킬명\",\"d\":\"SKILL.md 요약\"}],\"summary\":\"변환요약\"}";
+      const raw=await callAI([{role:"user",content:jsonPrompt}],"json");
+      let result;
+      try{result=JSON.parse(raw.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim());}
+      catch(e){S.aiMessages.push({role:"assistant",content:"["+prov.name+"]\n"+raw});S.aiLoading=false;render();return;}
+      // Auto-apply
+      if(result.modules?.length){const ex=new Set((p.modules||[]).map(sn));const nw=result.modules.filter(m=>!ex.has(m.n));
+        if(nw.length){p.modules=[...(p.modules||[]),...nw.map(m=>({n:m.n,d:m.d,from:p.name}))];
+          S.aiMessages.push({role:"system",content:"✅ "+nw.length+"개 Module 자동 등록: "+nw.map(m=>m.n).join(", ")});}}
+      if(result.skills?.length){const ex=new Set((p.skills||[]).map(sn));const nw=result.skills.filter(s=>!ex.has(s.n));
+        if(nw.length){p.skills=[...(p.skills||[]),...nw.map(s=>({n:s.n,d:s.d,from:p.name}))];
+          S.aiMessages.push({role:"system",content:"✅ "+nw.length+"개 Skill 자동 등록: "+nw.map(s=>s.n).join(", ")});}}
+      if(result.errors?.length){const ex=new Set(p.errors||[]);const nw=result.errors.filter(e=>!ex.has(e));
+        if(nw.length){p.errors=[...(p.errors||[]),...nw];S.aiMessages.push({role:"system",content:"⚠ "+nw.length+"개 Error 등록"});}}
+      S.aiMessages.push({role:"assistant",content:"["+prov.name+" "+(action==="analyze"?"구조분석":"Skill생성")+" 완료]\n\n"+(result.summary||"완료")+"\n\nModules: "+(p.modules||[]).map(sn).join(", ")+"\nSkills: "+(p.skills||[]).map(sn).join(", ")});
+    }else{
+      const prompts={error:"코드 품질 검토. 에러/보안 이슈 찾기.",github:"GitHub README.md 생성.",html:"HTML 사용법 문서 생성.",md:"Markdown 문서 생성."};
+      const raw=await callAI([{role:"user",content:ctx+"\n\n코드:\n"+code+"\n\n"+(prompts[action]||action)}],"text");
+      if(raw)S.aiMessages.push({role:"assistant",content:"["+prov.name+"]\n"+raw});
+    }
+  }catch(e){S.aiMessages.push({role:"assistant",content:"오류 ("+defProv().name+"): "+e.message,err:true});}
+  S.aiLoading=false;save();render();
+  setTimeout(()=>{const el=document.getElementById("ai-scroll");if(el)el.scrollTop=el.scrollHeight;},100);
+}
+
+async function askFree(prompt){
+  S.aiMessages.push({role:"user",content:prompt});S.aiLoading=true;render();
+  try{const raw=await callAI(S.aiMessages.filter(m=>m.role!=="system").map(m=>({role:m.role,content:m.content})),"text");
+    if(raw)S.aiMessages.push({role:"assistant",content:"["+defProv().name+"]\n"+raw});}
+  catch(e){S.aiMessages.push({role:"assistant",content:"오류: "+e.message,err:true});}
+  S.aiLoading=false;render();
+  setTimeout(()=>{const el=document.getElementById("ai-scroll");if(el)el.scrollTop=el.scrollHeight;},100);
+}
+
+function handleFileDrop(files,wbId){
+  if(!files||!files.length)return;
+  if(!wbId)wbId=S.workbenches.find(w=>w.isDefault)?.id||S.workbenches[0]?.id;
+  Array.from(files).forEach((file,i)=>{
+    const info=parseFileName(file.name);const reader=new FileReader();
+    reader.onload=async function(e){
+      const content=e.target.result;const existing=S.programs.find(p=>p.name.toLowerCase()===info.name.toLowerCase());
+      if(existing){
+        const rn=parseInt((existing.ver.match(/\d+/)||["0"])[0])+1;
+        existing.ver="Rev"+String(rn).padStart(2,"0");
+        existing.hasContent=true;existing.contentSize=content.length;
+        existing.notes=(existing.notes||"")+"\n"+existing.ver+": "+new Date().toLocaleDateString();
+        contentCache[existing.id]=content;await saveContent(existing.id,content);
+        save();tt(existing.name+" → "+existing.ver+" (코드 "+Math.round(content.length/1024)+"KB)");render();
+      }else{
+        const pid="f"+Date.now()+i;
+        const np={id:pid,wbId,name:info.name,desc:file.name+" ("+(file.size/1024).toFixed(1)+"KB)",
+          lang:info.lang,platform:"standalone",status:"dev",ver:info.ver,
+          hasContent:true,contentSize:content.length,
+          skills:[],modules:[],errors:[],github:"",
+          notes:"등록: "+new Date().toLocaleDateString()+"\n원본: "+file.name,
+          files:[{name:file.name,size:file.size}]};
+        S.programs.push(np);contentCache[pid]=content;await saveContent(pid,content);
+        S.exp["wb-"+wbId]=true;S.exp[pid]=true;S.selType="program";S.selId=pid;S.selSub=null;
+        save();tt(info.name+" ("+info.ver+") 등록! 코드 "+Math.round(content.length/1024)+"KB");render();}
+    };
+    if(file.name.match(/\.(html|htm|js|jsx|ts|py|css|json|md|txt|ps1|bat|sh|yaml|yml|xml|csv|sql)$/i))reader.readAsText(file);
+    else{const pid="f"+Date.now()+i;S.programs.push({id:pid,wbId,name:info.name,desc:file.name,lang:info.lang,platform:"standalone",status:"dev",ver:info.ver,
+      hasContent:false,contentSize:0,skills:[],modules:[],errors:[],github:"",notes:"바이너리",files:[{name:file.name,size:file.size}]});
+      save();tt(info.name+" 등록 (바이너리)");render();}
+  });}
+
+async function importGH(url){const m=url.match(/github\.com\/([^/]+)\/([^/]+)/);if(!m)return;
+  const log=document.getElementById("ilog");if(log)log.textContent="연결중...";
+  try{const res=await fetch("https://api.github.com/repos/"+m[1]+"/"+m[2]);if(!res.ok)throw new Error("("+res.status+")");
+    const repo=await res.json();let files=[];try{const tr=await fetch("https://api.github.com/repos/"+m[1]+"/"+m[2]+"/git/trees/"+repo.default_branch+"?recursive=1");
+      if(tr.ok){const t=await tr.json();files=(t.tree||[]).filter(f=>f.type==="blob").map(f=>({name:f.path,size:f.size}));}}catch(e){}
+    const lang=LANG_MAP[repo.language]||"Other";const dirs=[...new Set(files.map(f=>f.name.split("/")[0]).filter(d=>!d.startsWith(".")&&!["node_modules","__pycache__","venv","dist","build",".github"].includes(d)))];
+    const mods=dirs.filter(d=>files.some(f=>f.name.startsWith(d+"/"))).slice(0,15).map(n=>({n,d:"",from:repo.name}));
+    const defWb=S.workbenches.find(w=>w.isDefault)?.id||S.workbenches[0]?.id;
+    S.programs.push({id:"gh"+Date.now(),wbId:defWb,name:repo.name,desc:repo.description||"",lang,platform:"github",status:"active",ver:"latest",
+      hasContent:false,contentSize:0,skills:[],modules:mods,errors:[],github:url,notes:"Stars:"+repo.stargazers_count,files:files.slice(0,200)});
+    save();if(log)log.textContent="완료!";tt(repo.name+" 등록!");render();
+  }catch(e){if(log)log.textContent="오류: "+e.message;}}
+
+function exportData(){
+  const data={version:1,exported:new Date().toISOString(),workbenches:S.workbenches,programs:S.programs,settings:S.settings};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");
+  a.href=url;a.download="jarvis-backup-"+new Date().toISOString().slice(0,10)+".json";a.click();URL.revokeObjectURL(url);
+  tt("백업 파일 다운로드 완료");}
+function importData(file,bg){
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{const data=JSON.parse(e.target.result);
+      if(data.workbenches)S.workbenches=data.workbenches;
+      if(data.programs)S.programs=data.programs;
+      if(data.settings)S.settings=data.settings;
+      if(!S.settings.providers)S.settings.providers={};
+      AI_PROVIDERS.forEach(p=>{if(!S.settings.providers[p.id])S.settings.providers[p.id]={key:"",model:p.dm};});
+      if(!S.settings.defaultAI)S.settings.defaultAI="claude";
+      save();saveS();if(bg)bg.remove();
+      tt("복원 완료! "+S.programs.length+"개 프로그램 · "+S.workbenches.length+"개 워크벤치");render();}
+    catch(err){tt("복원 실패: "+err.message,"var(--red)");}};
+  reader.readAsText(file);}
+function toggleDesc(k){S.descOpen[k]=!S.descOpen[k];render();}
+
+function showSettings(){
+  const bg=h("div",{class:"modal-bg",onClick:()=>bg.remove()});
+  const m=h("div",{class:"modal",onClick:e=>e.stopPropagation()},
+    h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"16px"}},h("span",{style:{fontSize:"16px",fontWeight:600}},"⚙ Settings"),
+      h("button",{style:{background:"none",border:"none",color:"var(--text3)",fontSize:"18px",cursor:"pointer"},onClick:()=>bg.remove()},"✕")));
+  m.appendChild(h("div",{class:"setting-section"},h("h4",{},"🤖 기본 AI 선택"),
+    h("div",{style:{display:"flex",gap:"6px",marginBottom:"8px"}},...AI_PROVIDERS.map(p=>
+      h("button",{style:{flex:"1",padding:"8px",border:"2px solid "+(S.settings.defaultAI===p.id?p.color:"var(--border)"),borderRadius:"8px",
+        background:S.settings.defaultAI===p.id?p.color+"20":"var(--bg2)",color:S.settings.defaultAI===p.id?p.color:"var(--text3)",
+        fontSize:"12px",fontWeight:600,cursor:"pointer",fontFamily:"inherit"},
+        onClick:()=>{S.settings.defaultAI=p.id;saveS();bg.remove();showSettings();}},p.name+(S.settings.defaultAI===p.id?" ✓":"")))),
+    h("div",{style:{fontSize:"10px",color:"var(--text3)"}},"선택한 AI가 모든 분석의 기본 엔진")));
+  AI_PROVIDERS.forEach(prov=>{const cfg=S.settings.providers[prov.id]||{};
+    m.appendChild(h("div",{class:"setting-section"},
+      h("h4",{},h("span",{style:{color:prov.color}},"●")," "+prov.name+(S.settings.defaultAI===prov.id?" (Default)":"")),
+      h("div",{class:"field"},h("label",{},"API Key"),
+        h("input",{type:"password",value:cfg.key||"",placeholder:prov.id==="claude"?"sk-ant-...":prov.id==="gpt"?"sk-...":"AIza...",
+          onChange:e=>{S.settings.providers[prov.id].key=e.target.value;saveS();}})),
+      h("div",{class:"field"},h("label",{},"Model"),
+        h("select",{onChange:e=>{S.settings.providers[prov.id].model=e.target.value;saveS();}},
+          ...prov.models.map(mod=>h("option",{value:mod,selected:(cfg.model||prov.dm)===mod?"selected":undefined},mod))))));});
+  m.appendChild(h("div",{class:"setting-section"},h("h4",{},"📂 Workbenches"),
+    ...S.workbenches.map((wb,i)=>h("div",{style:{display:"flex",alignItems:"center",gap:"6px",marginBottom:"4px"}},
+      h("span",{style:{fontSize:"11px",color:wb.isDefault?"var(--accent)":"var(--text2)",flex:"1"}},wb.name+(wb.isDefault?" (default)":"")),
+      mkBtn("✕","var(--text3)",()=>{if(S.workbenches.length<=1)return;S.workbenches.splice(i,1);save();bg.remove();showSettings();},"btn-s"))),
+    mkBtn("+ 추가","var(--accent)",()=>{const n=prompt("워크벤치 이름:");if(n){S.workbenches.push({id:"wb-"+Date.now(),name:n});save();bg.remove();showSettings();}},"btn-s")));
+  m.appendChild(h("div",{class:"setting-section"},
+    h("h4",{},"💾 백업 / 복원"),
+    h("div",{style:{fontSize:"10px",color:"var(--text3)",marginBottom:"8px"}},"JSON 파일 하나로 PC 이전시에도 모든 설정·데이터 복원"),
+    h("div",{style:{display:"flex",gap:"6px"}},
+      mkBtn("⬇ 내보내기","var(--green)",()=>exportData(),"btn-full"),
+      mkBtn("⬆ 가져오기","var(--blue)",()=>{const inp=document.createElement("input");inp.type="file";inp.accept=".json";inp.onchange=e=>{if(e.target.files[0])importData(e.target.files[0],bg);};inp.click();},"btn-full"))));
+  m.appendChild(mkBtn("닫기","var(--accent)",()=>{bg.remove();render();},"btn-full"));
+  bg.appendChild(m);document.body.appendChild(bg);}
+
+function showImport(){const bg=h("div",{class:"modal-bg",onClick:()=>bg.remove()});bg.appendChild(h("div",{class:"modal",style:{width:"400px"},onClick:e=>e.stopPropagation()},
+  h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"14px"}},h("span",{style:{fontSize:"15px",fontWeight:600}},"GitHub 가져오기"),
+    h("button",{style:{background:"none",border:"none",color:"var(--text3)",fontSize:"16px",cursor:"pointer"},onClick:()=>bg.remove()},"✕")),
+  h("div",{class:"field"},h("label",{},"Repository URL"),h("input",{id:"iurl",placeholder:"https://github.com/owner/repo"})),
+  mkBtn("가져오기","var(--accent)",()=>{const u=document.getElementById("iurl").value;if(u)importGH(u);},"btn-full"),
+  h("div",{id:"ilog",style:{fontSize:"11px",color:"var(--text2)",marginTop:"8px"}})));document.body.appendChild(bg);}
+
+function showAdd(){
+  const f={name:"",desc:"",lang:"HTML",platform:"standalone",status:"dev",ver:"Rev01",wbId:S.workbenches.find(w=>w.isDefault)?.id||S.workbenches[0]?.id};
+  const bg=h("div",{class:"modal-bg",onClick:()=>bg.remove()});const m=h("div",{class:"modal",onClick:e=>e.stopPropagation()});
+  function build(){m.innerHTML="";
+    m.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"14px"}},h("span",{style:{fontSize:"15px",fontWeight:600}},"프로그램 등록"),
+      h("button",{style:{background:"none",border:"none",color:"var(--text3)",fontSize:"16px",cursor:"pointer"},onClick:()=>bg.remove()},"✕")));
+    m.appendChild(h("div",{class:"field"},h("label",{},"워크벤치"),h("select",{onChange:e=>{f.wbId=e.target.value;}},
+      ...S.workbenches.map(wb=>h("option",{value:wb.id,selected:f.wbId===wb.id?"selected":undefined},wb.name)))));
+    const dz=h("div",{style:{margin:"0 0 12px",padding:"14px",border:"2px dashed var(--border)",borderRadius:"10px",textAlign:"center",fontSize:"11px",color:"var(--text3)",cursor:"pointer"},
+      onClick:()=>dzI.click(),onDragover:e=>{e.preventDefault();dz.style.borderColor="var(--accent)";},onDragleave:()=>{dz.style.borderColor="var(--border)";},
+      onDrop:e=>{e.preventDefault();const fi=e.dataTransfer.files;if(fi.length){const info=parseFileName(fi[0].name);f.name=info.name;f.ver=info.ver;f.lang=info.lang;f.desc=fi[0].name;build();}}},"📁 파일 드래그 또는 클릭");
+    const dzI=h("input",{type:"file",style:{display:"none"},onChange:e=>{const fi=e.target.files;if(fi.length){const info=parseFileName(fi[0].name);f.name=info.name;f.ver=info.ver;f.lang=info.lang;f.desc=fi[0].name;build();}}});
+    dz.appendChild(dzI);m.appendChild(dz);
+    [["name","이름"],["desc","설명"],["ver","버전"]].forEach(([k,lb])=>{const d=h("div",{class:"field"},h("label",{},lb));const inp=h("input",{value:f[k]||""});inp.addEventListener("input",e=>{f[k]=e.target.value;});d.appendChild(inp);m.appendChild(d);});
+    m.appendChild(h("div",{class:"field"},h("label",{},"언어"),h("div",{style:{display:"flex",gap:"3px",flexWrap:"wrap"}},...LANGS.map(l=>
+      h("button",{style:{padding:"3px 8px",border:"1px solid "+(f.lang===l?"var(--accent)":"var(--border)"),borderRadius:"5px",background:f.lang===l?"color-mix(in srgb,var(--accent) 20%,transparent)":"var(--bg3)",color:f.lang===l?"var(--accent)":"var(--text2)",fontSize:"10px",cursor:"pointer",fontFamily:"inherit"},onClick:()=>{f.lang=l;build();}},l)))));
+    m.appendChild(h("div",{style:{display:"flex",gap:"6px",marginTop:"12px"}},
+      mkBtn("등록","var(--accent)",()=>{if(f.name){S.programs.push({...f,id:"p"+Date.now(),hasContent:false,contentSize:0,skills:[],modules:[],errors:[],files:[]});save();bg.remove();render();}},"btn-full"),
+      mkBtn("취소","var(--text3)",()=>bg.remove(),"btn-full")));}
+  build();bg.appendChild(m);document.body.appendChild(bg);}
+
+function renderAI(){
+  const panel=h("div",{class:"main-right"});const prov=defProv();const cfg=provCfg(prov.id);
+  panel.appendChild(h("div",{class:"api-status"},
+    h("span",{style:{width:"6px",height:"6px",borderRadius:"50%",background:cfg.key?"var(--green)":"var(--red)",flexShrink:"0"}}),
+    h("span",{style:{color:prov.color,fontWeight:600}},prov.name),h("span",{}," / "+(cfg.model||prov.dm)),
+    h("div",{style:{flex:"1"}}),mkBtn("⚙","var(--text2)",()=>showSettings(),"btn-s"),mkBtn("Clear","var(--text3)",()=>{S.aiMessages=[];render();},"btn-s")));
+  const scroll=h("div",{id:"ai-scroll",style:{flex:"1",overflow:"auto",padding:"8px"}});
+  if(!S.aiMessages.length)scroll.appendChild(h("div",{style:{textAlign:"center",padding:"30px 12px",color:"var(--text3)",fontSize:"11px",lineHeight:"1.7"}},
+    cfg.key?"프로그램 선택 → Action 클릭 →\n"+prov.name+"가 분석 후 자동 등록":"⚙ Settings에서 API Key 입력"));
+  S.aiMessages.forEach(m=>{scroll.appendChild(h("div",{class:"ai-msg "+(m.role==="user"?"user":m.role==="system"?"sys":m.err?"err":"bot")},m.content));});
+  if(S.aiLoading)scroll.appendChild(h("div",{class:"ai-typing"},prov.name+" 분석중"));
+  panel.appendChild(scroll);
+  const inputBar=h("div",{class:"ai-input-bar"});
+  const inp=h("input",{placeholder:"직접 질문...",id:"ai-input"});
+  inp.addEventListener("keydown",e=>{if(e.key==="Enter"&&inp.value.trim()){askFree((sel()?"["+sel().name+"] ":"")+inp.value.trim());inp.value="";}});
+  inputBar.appendChild(inp);inputBar.appendChild(mkBtn("전송","var(--accent)",()=>{const v=document.getElementById("ai-input")?.value?.trim();if(v){askFree((sel()?"["+sel().name+"] ":"")+v);document.getElementById("ai-input").value="";}},"btn-s"));
+  panel.appendChild(inputBar);return panel;}
+
+function extractSkillCode(content,skillName){
+  if(!content)return null;
+  const lines=content.split('\n');
+  const kw=skillName.replace(/[-_\s]+/g,'[-_\\s]*');
+  const re=new RegExp(kw,'i');
+  let best=-1;
+  for(let i=0;i<lines.length;i++){
+    if(!re.test(lines[i]))continue;
+    if(/function[\s(]|def\s|class\s|const\s|async\s|export\s/.test(lines[i])){best=i;break;}
+    if(best===-1)best=i;
+  }
+  if(best===-1)return null;
+  const start=Math.max(0,best-2);
+  let end=Math.min(lines.length-1,best+30);
+  let depth=0,inBlock=false;
+  for(let i=best;i<Math.min(lines.length,best+100);i++){
+    for(const ch of lines[i]){if(ch==='{'||ch==='('){depth++;inBlock=true;}if(ch==='}'||ch===')'){depth--;}}
+    if(inBlock&&depth<=0){end=Math.min(i+1,lines.length-1,best+80);break;}
+  }
+  const snip=lines.slice(start,end+1).join('\n');
+  return snip.length>2000?snip.slice(0,2000)+'\n... (이하 생략)':snip;}
+
+function renderPipeline(p){
+  const mods=p.modules||[];if(!mods.length)return null;
+  const skillNames=new Set((p.skills||[]).map(sn));
+  const wrap=h("div",{style:{overflowX:"auto",marginBottom:"14px",paddingBottom:"2px"}});
+  const row=h("div",{style:{display:"flex",alignItems:"center",padding:"10px 2px",minWidth:"max-content"}});
+  const ns="http://www.w3.org/2000/svg";
+  mods.forEach((m,i)=>{
+    const name=sn(m);const isSk=skillNames.has(name);
+    const clr=isSk?"var(--green)":"var(--text3)";
+    const bg=isSk?"color-mix(in srgb,var(--green) 12%,transparent)":"var(--bg3)";
+    const bd=isSk?"color-mix(in srgb,var(--green) 30%,transparent)":"var(--border)";
+    const box=h("div",{style:{padding:"5px 12px",borderRadius:"8px",fontSize:"11px",fontWeight:500,background:bg,border:"1px solid "+bd,color:clr,cursor:"pointer",whiteSpace:"nowrap",flexShrink:"0",transition:"all .12s"},
+      onClick:()=>{S.selType="module";S.selId=p.id;S.selSub=name;render();}},name);
+    box.addEventListener("mouseenter",()=>{box.style.borderColor=isSk?"var(--green)":"var(--accent)";if(!isSk)box.style.color="var(--accent)";});
+    box.addEventListener("mouseleave",()=>{box.style.borderColor=bd;if(!isSk)box.style.color=clr;});
+    row.appendChild(box);
+    if(i<mods.length-1){
+      const svg=document.createElementNS(ns,"svg");
+      svg.setAttribute("width","26");svg.setAttribute("height","18");svg.setAttribute("viewBox","0 0 26 18");
+      svg.style.flexShrink="0";svg.style.overflow="visible";
+      const ln=document.createElementNS(ns,"line");
+      ln.setAttribute("x1","1");ln.setAttribute("y1","9");ln.setAttribute("x2","20");ln.setAttribute("y2","9");
+      ln.setAttribute("stroke","var(--text3)");ln.setAttribute("stroke-width","1.2");ln.setAttribute("opacity","0.35");
+      const ar=document.createElementNS(ns,"polygon");
+      ar.setAttribute("points","20,5 25,9 20,13");ar.setAttribute("fill","var(--text3)");ar.setAttribute("opacity","0.35");
+      svg.appendChild(ln);svg.appendChild(ar);row.appendChild(svg);
+    }
+  });
+  wrap.appendChild(row);return wrap;}
+
+function render(){
+  const app=document.getElementById("app");app.innerHTML="";
+  if(!S.dark)document.body.classList.add("light");else document.body.classList.remove("light");
+  if(S.toast)app.appendChild(h("div",{class:"toast",style:{background:S.toastColor}},S.toast));
+  const prov=defProv();
+  app.appendChild(h("div",{class:"topbar"},
+    h("div",{style:{display:"flex",alignItems:"center",gap:"6px",marginRight:"4px"}},h("div",{style:{width:"24px",height:"24px",borderRadius:"6px",background:"linear-gradient(135deg,#4a90d9,#7c6cf0)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"12px",fontWeight:"700",color:"#fff"}},"J"),h("span",{style:{fontSize:"13px",fontWeight:700}},"JARVIS")),
+    h("div",{class:"divider"}),...LINKS.map(l=>h("button",{class:"link-btn",onClick:()=>window.open(l.u,"_blank")},l.n)),
+    h("div",{class:"divider"}),mkBtn("⚙","var(--text2)",()=>showSettings(),"btn-s"),mkBtn("↻","var(--text2)",()=>location.reload(),"btn-s"),
+    h("div",{style:{flex:1}}),h("span",{style:{fontSize:"10px",color:prov.color,fontWeight:600}},prov.name),
+    h("span",{style:{fontSize:"10px",color:"var(--text3)",margin:"0 4px"}},"·"),
+    h("span",{style:{fontSize:"10px",color:"var(--text3)"}},S.programs.length+"p · "+allSk().length+"s · "+allMo().length+"m"),
+    h("button",{style:{padding:"3px 8px",border:"1px solid var(--border)",borderRadius:"5px",background:"var(--bg3)",color:"var(--text2)",fontSize:"11px",cursor:"pointer",fontFamily:"inherit"},onClick:()=>{S.dark=!S.dark;render();}},S.dark?"☀":"●")));
+  const body=h("div",{style:{flex:"1",display:"flex",overflow:"hidden"}});
+  const sb=h("div",{class:"sidebar"});
+  sb.appendChild(h("div",{class:"tab-bar"},...["programs","skills","modules"].map(t=>h("button",{class:"tab"+(S.sideTab===t?" active":""),onClick:()=>{S.sideTab=t;render();}},t.charAt(0).toUpperCase()+t.slice(1)))));
+  const list=h("div",{class:"tree-list"});
+  if(S.sideTab==="programs"){
+    S.workbenches.forEach(wb=>{const progs=S.programs.filter(p=>p.wbId===wb.id);
+      list.appendChild(h("div",{class:"ti-wb",onClick:()=>{S.exp["wb-"+wb.id]=!S.exp["wb-"+wb.id];render();}},
+        h("span",{style:{fontSize:"10px"}},S.exp["wb-"+wb.id]===false?"▸":"▾"),"📂 "+wb.name,
+        h("span",{style:{fontSize:"8px",color:"var(--text3)",marginLeft:"auto"}},""+progs.length)));
+      list.appendChild(h("div",{style:{margin:"2px 4px 5px",padding:"4px 8px",border:"1px dashed var(--border)",borderRadius:"5px",textAlign:"center",fontSize:"9px",color:"var(--text3)"},
+        onDragover:e=>{e.preventDefault();e.currentTarget.style.borderColor="var(--accent)";e.currentTarget.style.color="var(--accent)";},
+        onDragleave:e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text3)";},
+        onDrop:e=>{e.preventDefault();e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.color="var(--text3)";handleFileDrop(e.dataTransfer.files,wb.id);}},
+        "📁 파일 드래그"));
+      if(S.exp["wb-"+wb.id]!==false){progs.forEach(p=>{
+        const sc=p.status==="active"?"var(--green)":p.status==="dev"?"var(--amber)":"var(--blue)";
+        const badge=p.errors?.length>0?{c:"var(--red)",t:p.errors.length+"!"}:p.hasContent?{c:"var(--green)",t:Math.round((p.contentSize||0)/1024)+"KB"}:null;
+        list.appendChild(mkTI(p.name,S.exp[p.id]?"▾":"▸",sc,1,S.selId===p.id&&!S.selSub,()=>{S.exp[p.id]=!S.exp[p.id];S.selType="program";S.selId=p.id;S.selSub=null;render();},undefined,badge));
+        if(S.exp[p.id]){
+          if((p.skills||[]).length){list.appendChild(mkTI("Skills","◆","var(--green)",2,false,()=>{},p.skills.length));p.skills.forEach(s=>list.appendChild(mkTI(sn(s),"·","var(--green)",3,S.selSub===sn(s),()=>{S.selType="skill";S.selId=p.id;S.selSub=sn(s);render();})));}
+          if((p.modules||[]).length){list.appendChild(mkTI("Modules","◧","var(--blue)",2,false,()=>{},p.modules.length));p.modules.forEach(m=>list.appendChild(mkTI(sn(m),"·","var(--blue)",3,S.selSub===sn(m),()=>{S.selType="module";S.selId=p.id;S.selSub=sn(m);render();})));}
+          if((p.errors||[]).length)list.appendChild(mkTI("Errors","✕","var(--red)",2,S.selSub==="errors",()=>{S.selType="program";S.selId=p.id;S.selSub="errors";render();},p.errors.length));
+          if((p.files||[]).length)list.appendChild(mkTI("Files","≡","var(--text3)",2,S.selSub==="files",()=>{S.selType="program";S.selId=p.id;S.selSub="files";render();},(p.files||[]).length));
+        }});}});
+  }else if(S.sideTab==="skills"){
+    const byName={};allSk().forEach(s=>{const k=sn(s);if(!byName[k])byName[k]=[];byName[k].push(s);});
+    if(!Object.keys(byName).length){list.appendChild(h("div",{style:{padding:"16px",fontSize:"11px",color:"var(--text3)",textAlign:"center"}},"Skill 없음 — 구조분석 실행"));}
+    else{
+      const SK_CATS=[
+        {id:"data",label:"데이터 처리",keys:["파싱","csv","데이터","data","pars","import","load","변환","transform","json","xml","read","write","fetch"]},
+        {id:"viz", label:"시각화",     keys:["차트","그래프","디자인","ui","시각","chart","graph","visual","render","display","플로우","flow","theme","테마"]},
+        {id:"anal",label:"분석",       keys:["분석","검증","계산","anal","valid","calc","검사","측정","평가","pricing","비용","토큰","strategy","report","review"]},
+        {id:"sys", label:"시스템",     keys:["내보내기","저장","관리","config","설정","auth","log","api","server","backend","pipeline","stream","sse","manage","hook"]}
+      ];
+      function skCat(name){const l=name.toLowerCase();for(const c of SK_CATS)if(c.keys.some(k=>l.includes(k)))return c.id;return"etc";}
+      const catMap={data:[],viz:[],anal:[],sys:[],etc:[]};
+      Object.entries(byName).forEach(([name,items])=>{catMap[skCat(name)].push({name,items});});
+      [...SK_CATS,{id:"etc",label:"기타"}].forEach(cat=>{
+        const entries=catMap[cat.id];if(!entries.length)return;
+        const ek="skcat-"+cat.id;const isExp=S.exp[ek]!==false;
+        const hdr=h("div",{style:{padding:"4px 8px",borderRadius:"5px",cursor:"pointer",display:"flex",alignItems:"center",gap:"4px",fontSize:"10px",fontWeight:600,color:"var(--text2)",marginTop:"6px",userSelect:"none"},
+          onClick:()=>{S.exp[ek]=!isExp;render();}},
+          h("span",{style:{fontSize:"9px",color:"var(--text3)"}},isExp?"▾":"▸"),cat.label,
+          h("span",{style:{fontSize:"8px",color:"var(--text3)",background:"var(--bg3)",padding:"1px 4px",borderRadius:"3px",marginLeft:"2px"}},""+entries.length));
+        if(entries.length>=2)hdr.appendChild(h("span",{style:{fontSize:"7px",padding:"1px 5px",borderRadius:"3px",background:"color-mix(in srgb,var(--amber) 15%,transparent)",color:"var(--amber)",marginLeft:"2px"}},"통합 가능"));
+        list.appendChild(hdr);
+        if(isExp)entries.forEach(({name,items})=>list.appendChild(mkTI(
+          name+(items.length>1?" ("+items.length+")":""),"◆","var(--green)",1,S.selSub===name,
+          ()=>{S.selType="skill";S.selId=items[0].progId;S.selSub=name;render();},undefined,
+          items.length>1?{c:"var(--amber)",t:"비교"}:{c:"var(--text3)",t:items[0].from})));
+      });
+    }
+  }else{const grouped={};allMo().forEach(m=>{const k=sn(m);if(!grouped[k])grouped[k]=[];grouped[k].push(m);});
+    if(!Object.keys(grouped).length)list.appendChild(h("div",{style:{padding:"16px",fontSize:"11px",color:"var(--text3)",textAlign:"center"}},"Module 없음"));
+    Object.entries(grouped).forEach(([name,items])=>{list.appendChild(mkTI(name+(items.length>1?" ("+items.length+")":""),"◧","var(--blue)",0,S.selSub===name,()=>{S.selType="module";S.selId=items[0].progId;S.selSub=name;render();},undefined,
+      items.length>1?{c:"var(--amber)",t:"비교"}:{c:"var(--text3)",t:items[0].from}));});}
+  sb.appendChild(list);
+  sb.appendChild(h("div",{style:{padding:"6px",borderTop:"1px solid var(--border)",display:"flex",flexDirection:"column",gap:"3px"}},
+    mkBtn("+ 프로그램 추가","var(--accent)",()=>showAdd(),"btn-full"),mkBtn("↓ GitHub 가져오기","var(--blue)",()=>showImport(),"btn-full")));
+  body.appendChild(sb);
+  const main=h("div",{class:"main"});const ml=h("div",{class:"main-left"});const p=sel();
+  if(!p){ml.appendChild(h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:"16px",color:"var(--text3)"}},
+    h("div",{style:{fontSize:"36px",opacity:.4}},"◈"),h("h2",{style:{fontSize:"18px",fontWeight:600,color:"var(--text)"}},"JARVIS Workbench v1.2"),
+    h("p",{style:{fontSize:"12px",maxWidth:"420px",textAlign:"center",lineHeight:"1.7"}},"파일 드래그 → 코드 읽기 → Action → AI 분석 후 Module/Skill 자동 등록\n⚙ Settings에서 AI Key 설정"),
+    h("div",{class:"stat-grid"},...[{n:S.programs.length,l:"Programs",c:"var(--accent)"},{n:allSk().length,l:"Skills",c:"var(--green)"},{n:allMo().length,l:"Modules",c:"var(--blue)"},{n:S.programs.reduce((s,p)=>(p.errors||[]).length+s,0),l:"Errors",c:"var(--red)"}]
+      .map(s=>h("div",{class:"stat-card"},h("div",{class:"num",style:{color:s.c}},""+s.n),h("div",{class:"lbl"},s.l))))));
+  }else if(S.selType==="skill"){const items=allSk().filter(s=>sn(s)===S.selSub);
+    const skKey=S.selSub;const isOpen=S.skillCodeOpen[skKey];
+    const ct=h("div",{style:{maxWidth:"720px"}});
+    ct.appendChild(h("div",{style:{fontSize:"10px",color:"var(--green)",fontWeight:500}},"SKILL"));
+    ct.appendChild(h("div",{style:{fontSize:"20px",fontWeight:600,margin:"4px 0"}},skKey));
+    if(items.length>1){
+      ct.appendChild(h("div",{style:{fontSize:"11px",color:"var(--amber)",marginBottom:"6px"}},"⚠ "+items.length+"개 프로그램에서 사용:"));
+      items.forEach(s=>ct.appendChild(h("div",{class:"sk-compare"},h("div",{style:{color:"var(--green)"}},"◆ "+sn(s)+(sd(s)?" — "+sd(s):"")),h("div",{class:"from"},"출처: "+s.from))));
+    }else{
+      ct.appendChild(h("div",{style:{fontSize:"12px",color:"var(--text2)",marginBottom:"8px",whiteSpace:"pre-wrap"}},"소속: "+p.name+(sd(items[0])?"\n"+sd(items[0]):"")));
+    }
+    ct.appendChild(h("div",{style:{display:"flex",gap:"6px",alignItems:"center",marginBottom:"10px"}},
+      mkBtn((isOpen?"▾ 코드 숨기기":"▸ 코드 보기"),"var(--text2)",()=>{
+        S.skillCodeOpen[skKey]=!isOpen;
+        if(!isOpen){items.forEach(async s=>{
+          const ck=s.progId+":"+skKey;if(S.skillCode[ck]!==undefined)return;
+          S.skillCode[ck]="loading";render();
+          const prog=S.programs.find(pr=>pr.id===s.progId);
+          if(!prog||!prog.hasContent){S.skillCode[ck]=null;render();return;}
+          const cnt=await getContent(s.progId);
+          S.skillCode[ck]=extractSkillCode(cnt,skKey);render();});}
+        render();},"btn-s")));
+    if(isOpen){
+      if(items.length===1){
+        const ck=items[0].progId+":"+skKey;const snip=S.skillCode[ck];
+        if(snip==="loading")ct.appendChild(h("div",{style:{padding:"10px",fontSize:"11px",color:"var(--text3)"}},"코드 추출 중..."));
+        else if(snip)ct.appendChild(h("pre",{style:{padding:"12px",borderRadius:"8px",background:"#0d1117",color:"#e6edf3",fontSize:"11px",fontFamily:"'Consolas','Monaco',monospace",overflow:"auto",maxHeight:"320px",lineHeight:"1.6",border:"1px solid #30363d",marginBottom:"8px",whiteSpace:"pre"}},snip));
+        else ct.appendChild(h("div",{style:{padding:"8px",fontSize:"11px",color:"var(--text3)",marginBottom:"8px"}},"관련 코드 없음 — 파일을 드래그하여 코드를 로드하세요"));
+      }else{
+        const row=h("div",{style:{display:"flex",gap:"10px",marginBottom:"10px",overflowX:"auto"}});
+        items.forEach(s=>{
+          const ck=s.progId+":"+skKey;const snip=S.skillCode[ck];
+          const col=h("div",{style:{flex:"1",minWidth:"200px"}});
+          col.appendChild(h("div",{style:{fontSize:"10px",color:"var(--accent)",marginBottom:"4px",fontWeight:600}},s.from));
+          if(snip==="loading")col.appendChild(h("div",{style:{padding:"8px",fontSize:"11px",color:"var(--text3)"}},"추출 중..."));
+          else if(snip)col.appendChild(h("pre",{style:{padding:"10px",borderRadius:"8px",background:"#0d1117",color:"#e6edf3",fontSize:"10px",fontFamily:"'Consolas','Monaco',monospace",overflow:"auto",maxHeight:"260px",lineHeight:"1.6",border:"1px solid #30363d",whiteSpace:"pre"}},snip));
+          else col.appendChild(h("div",{style:{padding:"8px",fontSize:"11px",color:"var(--text3)"}},"코드 없음"));
+          row.appendChild(col);
+        });
+        ct.appendChild(row);
+        const allDone=items.every(s=>{const k=s.progId+":"+skKey;return S.skillCode[k]!==undefined&&S.skillCode[k]!=="loading";});
+        if(allDone)ct.appendChild(mkBtn("🔍 차이점 분석","var(--amber)",()=>{
+          const snippets=items.map(s=>{const k=s.progId+":"+skKey;return'【'+s.from+'】\n'+(S.skillCode[k]||"코드 없음");}).join('\n\n---\n\n');
+          askFree('"'+skKey+'" skill 구현 비교 — 차이점과 통합 제안:\n\n'+snippets);}));
+      }
+    }
+    ct.appendChild(h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"10px"}},
+      mkBtn("SKILL.md 생성","var(--accent)",()=>askFree('"'+p.name+'"의 "'+skKey+'" SKILL.md 생성. 트리거, 절차, scripts/ 포함.')),
+      mkBtn("테스트","var(--blue)",()=>askFree('"'+skKey+'" 테스트 케이스.')),
+      mkBtn("범용화","var(--green)",()=>askFree('"'+skKey+'" 범용화.'))));
+    ml.appendChild(ct);
+  }else if(S.selType==="module"){const items=allMo().filter(m=>sn(m)===S.selSub);
+    const moKey=S.selSub;
+    const refProg=S.programs.find(pr=>pr.id===items[0].progId)||p;
+    const ct=h("div",{style:{maxWidth:"720px"}});
+    ct.appendChild(h("div",{style:{fontSize:"10px",color:"var(--blue)",fontWeight:500}},"MODULE"));
+    ct.appendChild(h("div",{style:{fontSize:"20px",fontWeight:600,margin:"4px 0"}},moKey));
+    if(items.length>1){
+      ct.appendChild(h("div",{style:{fontSize:"11px",color:"var(--amber)",marginBottom:"6px"}},"⚠ "+items.length+"개 프로그램에서 사용:"));
+      items.forEach(m=>ct.appendChild(h("div",{class:"sk-compare"},h("div",{style:{color:"var(--blue)"}},"◧ "+sn(m)+(sd(m)?" — "+sd(m):"")),h("div",{class:"from"},"출처: "+m.from))));
+    }else{
+      ct.appendChild(h("div",{style:{fontSize:"12px",color:"var(--text2)",marginBottom:"8px",whiteSpace:"pre-wrap"}},"소속: "+refProg.name+(sd(items[0])?"\n"+sd(items[0]):"")));
+    }
+    // ── 파이프라인 위치 ──
+    const mods=refProg.modules||[];const moIdx=mods.findIndex(m=>sn(m)===moKey);
+    if(mods.length>1&&moIdx!==-1){
+      ct.appendChild(h("div",{style:{fontSize:"10px",color:"var(--text3)",fontWeight:600,margin:"10px 0 6px"}},"파이프라인 위치"));
+      const pipeRow=h("div",{style:{display:"flex",alignItems:"center",overflowX:"auto",paddingBottom:"4px"}});
+      const ns="http://www.w3.org/2000/svg";
+      mods.forEach((m,i)=>{
+        const isCur=i===moIdx;
+        const box=h("div",{style:{padding:"4px 10px",borderRadius:"7px",fontSize:"10px",fontWeight:isCur?700:400,
+          background:isCur?"color-mix(in srgb,var(--blue) 18%,transparent)":"var(--bg3)",
+          border:"1px solid "+(isCur?"var(--blue)":"var(--border)"),
+          color:isCur?"var(--blue)":"var(--text3)",flexShrink:"0",whiteSpace:"nowrap",
+          cursor:isCur?"default":"pointer",
+          boxShadow:isCur?"0 0 0 2px color-mix(in srgb,var(--blue) 22%,transparent)":"none"},
+          onClick:isCur?null:()=>{S.selType="module";S.selId=refProg.id;S.selSub=sn(m);render();}},sn(m));
+        pipeRow.appendChild(box);
+        if(i<mods.length-1){
+          const svg=document.createElementNS(ns,"svg");svg.setAttribute("width","22");svg.setAttribute("height","18");svg.setAttribute("viewBox","0 0 22 18");svg.style.flexShrink="0";
+          const ln=document.createElementNS(ns,"line");ln.setAttribute("x1","1");ln.setAttribute("y1","9");ln.setAttribute("x2","16");ln.setAttribute("y2","9");ln.setAttribute("stroke","var(--text3)");ln.setAttribute("stroke-width","1.2");ln.setAttribute("opacity","0.35");
+          const ar=document.createElementNS(ns,"polygon");ar.setAttribute("points","16,5 21,9 16,13");ar.setAttribute("fill","var(--text3)");ar.setAttribute("opacity","0.35");
+          svg.appendChild(ln);svg.appendChild(ar);pipeRow.appendChild(svg);
+        }
+      });
+      ct.appendChild(pipeRow);
+    }
+    // ── 연결된 Skills ──
+    const ns2="http://www.w3.org/2000/svg";
+    const moWords=moKey.toLowerCase().split(/[-_\s]+/).filter(w=>w.length>2);
+    const relSkills=(refProg.skills||[]).filter(s=>{const sl=sn(s).toLowerCase();return sl===moKey.toLowerCase()||moWords.some(w=>sl.includes(w));});
+    ct.appendChild(h("div",{style:{fontSize:"10px",color:"var(--text3)",fontWeight:600,margin:"14px 0 6px"}},"연결된 Skills"));
+    if(!relSkills.length){
+      ct.appendChild(h("div",{style:{fontSize:"11px",color:"var(--text3)",paddingBottom:"8px"}},"연결된 Skill 없음 — Skill 변환으로 등록"));
+    }else{
+      const flowRow=h("div",{style:{display:"flex",alignItems:"flex-start",marginBottom:"10px"}});
+      flowRow.appendChild(h("div",{style:{padding:"6px 12px",borderRadius:"8px",fontSize:"11px",fontWeight:600,background:"color-mix(in srgb,var(--blue) 14%,transparent)",border:"1px solid color-mix(in srgb,var(--blue) 35%,transparent)",color:"var(--blue)",whiteSpace:"nowrap",flexShrink:"0",alignSelf:"center"}},moKey));
+      const arSvg=document.createElementNS(ns2,"svg");arSvg.setAttribute("width","30");arSvg.setAttribute("height","20");arSvg.setAttribute("viewBox","0 0 30 20");arSvg.style.flexShrink="0";arSvg.style.alignSelf="center";
+      const arLn=document.createElementNS(ns2,"line");arLn.setAttribute("x1","1");arLn.setAttribute("y1","10");arLn.setAttribute("x2","24");arLn.setAttribute("y2","10");arLn.setAttribute("stroke","var(--green)");arLn.setAttribute("stroke-width","1.5");arLn.setAttribute("opacity","0.5");
+      const arPoly=document.createElementNS(ns2,"polygon");arPoly.setAttribute("points","24,6 29,10 24,14");arPoly.setAttribute("fill","var(--green)");arPoly.setAttribute("opacity","0.5");
+      arSvg.appendChild(arLn);arSvg.appendChild(arPoly);flowRow.appendChild(arSvg);
+      const skillsCol=h("div",{style:{display:"flex",flexDirection:"column",gap:"4px",borderLeft:relSkills.length>1?"2px solid color-mix(in srgb,var(--green) 25%,transparent)":"none",paddingLeft:relSkills.length>1?"8px":"0"}});
+      relSkills.forEach(s=>skillsCol.appendChild(h("div",{style:{padding:"4px 10px",borderRadius:"7px",fontSize:"11px",fontWeight:500,background:"color-mix(in srgb,var(--green) 10%,transparent)",border:"1px solid color-mix(in srgb,var(--green) 25%,transparent)",color:"var(--green)",whiteSpace:"nowrap",cursor:"pointer"},
+        onClick:()=>{S.selType="skill";S.selId=refProg.id;S.selSub=sn(s);render();}},sn(s))));
+      flowRow.appendChild(skillsCol);
+      ct.appendChild(flowRow);
+    }
+    // ── 버튼 ──
+    ct.appendChild(h("div",{style:{display:"flex",gap:"6px",flexWrap:"wrap",marginTop:"10px"}},
+      mkBtn("Skill 변환","var(--accent)",()=>askFree('"'+refProg.name+'"의 "'+moKey+'" Skill 변환.')),
+      mkBtn("인터페이스","var(--blue)",()=>askFree('"'+moKey+'" JSON schema.')),
+      mkBtn("파라미터","var(--green)",()=>askFree('"'+moKey+'" 파라미터.')),
+      mkBtn("이 모듈의 역할 설명","var(--amber)",async()=>{
+        const cnt=refProg.hasContent?await getContent(refProg.id):null;
+        const codeSnip=cnt?extractSkillCode(cnt,moKey):null;
+        askFree('"'+refProg.name+'" 프로그램에서 "'+moKey+'" 모듈의 역할을 설명해주세요.'+(codeSnip?'\n\n관련 코드:\n'+codeSnip:''));})));
+    ml.appendChild(ct);
+  }else{
+    const ct=h("div",{style:{maxWidth:"650px"}});const sc=p.status==="active"?"var(--green)":p.status==="dev"?"var(--amber)":"var(--blue)";
+    const wb=S.workbenches.find(w=>w.id===p.wbId);
+    ct.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:"16px"}},
+      h("div",{},wb?h("div",{style:{fontSize:"10px",color:"var(--accent)",marginBottom:"4px"}},"📂 "+wb.name):null,
+        h("div",{style:{fontSize:"22px",fontWeight:600}},p.name),h("div",{style:{fontSize:"13px",color:"var(--text2)",marginTop:"4px"}},p.desc),
+        h("div",{style:{display:"flex",gap:"5px",marginTop:"8px",flexWrap:"wrap"}},
+          h("span",{class:"tag",style:{background:"color-mix(in srgb,"+sc+" 15%,transparent)",color:sc}},STATUSES[p.status]||p.status),
+          h("span",{class:"tag",style:{background:"var(--bg3)",color:"var(--text2)"}},p.lang),
+          h("span",{class:"tag",style:{background:"var(--bg3)",color:"var(--text2)"}},p.ver),
+          p.hasContent?h("span",{class:"tag",style:{background:"var(--green)18",color:"var(--green)"}},"코드 "+Math.round((p.contentSize||0)/1024)+"KB"):
+            h("span",{class:"tag",style:{background:"var(--amber)18",color:"var(--amber)",cursor:"pointer"}},"코드 로드 필요 — 파일 드래그"))),
+      mkBtn("삭제","var(--red)",()=>{if(confirm("삭제?")){deleteContent(p.id);S.programs=S.programs.filter(x=>x.id!==p.id);S.selId=null;save();render();}},"btn-s")));
+    const hasMod=(p.modules||[]).length,hasSk=(p.skills||[]).length,hasErr=(p.errors||[]).length;
+    if(S.selSub==="files"&&(p.files||[]).length){
+      ct.appendChild(h("div",{},h("div",{class:"sec-title",style:{marginBottom:"8px"}},"Files"),
+        h("div",{style:{maxHeight:"300px",overflow:"auto",border:"1px solid var(--border)",borderRadius:"8px",background:"var(--bg3)"}},
+          ...(p.files||[]).map(f=>h("div",{style:{padding:"4px 10px",borderBottom:"1px solid var(--border)",fontSize:"11px",color:"var(--text2)",display:"flex",justifyContent:"space-between"}},
+            h("span",{},f.name),f.size?h("span",{style:{fontSize:"10px",color:"var(--text3)"}},(f.size/1024).toFixed(1)+"KB"):null)))));
+    }else if(!hasMod&&!hasSk&&!hasErr){
+      ct.appendChild(h("div",{style:{padding:"16px",borderRadius:"12px",background:"color-mix(in srgb,var(--accent) 8%,transparent)",border:"1px solid color-mix(in srgb,var(--accent) 20%,transparent)",marginBottom:"16px"}},
+        h("div",{style:{fontSize:"14px",fontWeight:600,color:"var(--accent)",marginBottom:"8px"}},"👋 이 프로그램을 분석해 볼까요?"),
+        h("div",{style:{fontSize:"12px",color:"var(--text2)",lineHeight:"1.7"}},
+          p.hasContent?"코드가 로드되어 있습니다 ("+Math.round((p.contentSize||0)/1024)+"KB). 버튼을 누르면 "+defProv().name+"가 분석하여 Module/Skill을 자동 등록합니다.":"파일을 왼쪽에 드래그하여 코드를 로드하세요. 코드가 있어야 정확한 분석이 가능합니다.")));
+      [["① 구조 분석","var(--accent)","코드 분석 → Module/Skill 자동 등록",()=>analyzeAndApply(p,"analyze")],
+       ["② Skill 생성","var(--green)","모듈 → Skill 변환 + 자동 등록",()=>analyzeAndApply(p,"skill")],
+       ["③ 에러 검토","var(--blue)","잠재적 에러/성능 이슈",()=>analyzeAndApply(p,"error")]
+      ].forEach(([t,c,d,fn])=>ct.appendChild(h("div",{class:"guide-card",onClick:fn},
+        h("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},h("div",{class:"guide-num",style:{background:c+"20",color:c}},t.charAt(0)),h("div",{},h("h4",{style:{color:c}},t.slice(2)),h("p",{},d))))));
+    }else{
+      if(hasMod)ct.appendChild(renderPipeline(p));
+      const ms=h("div",{style:{marginBottom:"14px"}});
+      ms.appendChild(h("div",{class:"sec-hdr"},h("span",{class:"sec-title"},"Modules ("+hasMod+")"),mkBtn("+ 추가","var(--blue)",()=>{const n=prompt("모듈:");if(n){if(!p.modules)p.modules=[];p.modules.push({n,d:"",from:p.name});save();render();}},"btn-s")));
+      (p.modules||[]).forEach((m,i)=>{const k=p.id+"-m-"+i;
+        ms.appendChild(h("div",{class:"mod-row"},h("span",{style:{cursor:"pointer",flex:"1"},onClick:()=>toggleDesc(k)},h("span",{style:{color:"var(--text3)",fontSize:"9px",marginRight:"4px"}},S.descOpen[k]?"▾":"▸"),sn(m)),
+          h("div",{style:{display:"flex",gap:"3px"}},mkBtn("skill화","var(--accent)",()=>askFree('"'+p.name+'"의 "'+sn(m)+'" Skill 변환.'),"btn-s"),mkBtn("✕","var(--text3)",()=>{p.modules.splice(i,1);save();render();},"btn-s"))));
+        if(S.descOpen[k]&&sd(m))ms.appendChild(h("div",{class:"desc-box"},sd(m)));});ct.appendChild(ms);
+      const ss=h("div",{style:{marginBottom:"14px"}});
+      ss.appendChild(h("div",{class:"sec-hdr"},h("span",{class:"sec-title"},"Skills ("+hasSk+")"),mkBtn("+ 추가","var(--green)",()=>{const n=prompt("Skill:");if(n){if(!p.skills)p.skills=[];p.skills.push({n,d:"",from:p.name});save();render();}},"btn-s")));
+      if(!hasSk)ss.appendChild(h("div",{style:{fontSize:"11px",color:"var(--text3)",padding:"4px 0"}},"없음 — Skill 생성 버튼으로 자동 생성"));
+      (p.skills||[]).forEach((s,i)=>{const k=p.id+"-s-"+i;
+        ss.appendChild(h("div",{class:"sk-row"},h("span",{style:{cursor:"pointer",flex:"1"},onClick:()=>toggleDesc(k)},h("span",{style:{fontSize:"9px",marginRight:"4px"}},S.descOpen[k]?"▾":"▸"),"◆ "+sn(s)),
+          mkBtn("✕","var(--text3)",()=>{p.skills.splice(i,1);save();render();},"btn-s")));
+        if(S.descOpen[k]&&sd(s))ss.appendChild(h("div",{class:"desc-box",style:{background:"color-mix(in srgb,var(--green) 4%,transparent)"}},sd(s)));});ct.appendChild(ss);
+      if(hasErr){const es=h("div",{style:{marginBottom:"14px"}},h("div",{class:"sec-title",style:{color:"var(--red)",marginBottom:"6px"}},"Errors ("+hasErr+")"));
+        (p.errors||[]).forEach((e,i)=>es.appendChild(h("div",{class:"err-row"},h("span",{style:{flex:"1"}},e),
+          h("div",{style:{display:"flex",gap:"3px",flexShrink:"0"}},mkBtn("수정","var(--amber)",()=>askFree('"'+p.name+'" 에러: '+e),"btn-s"),mkBtn("✕","var(--text3)",()=>{p.errors.splice(i,1);save();render();},"btn-s")))));ct.appendChild(es);}
+      if(p.notes)ct.appendChild(h("div",{style:{marginBottom:"14px",padding:"8px 10px",borderRadius:"6px",background:"var(--bg3)",fontSize:"11px",color:"var(--text2)",lineHeight:"1.5",whiteSpace:"pre-wrap"}},p.notes));
+      ct.appendChild(h("div",{class:"sec-title",style:{marginBottom:"8px"}},"Actions → "+defProv().name+" 분석 후 자동 등록"));
+      const ag=h("div",{class:"grid2",style:{marginBottom:"12px"}});
+      [["🔍 구조 분석","var(--accent)","Module/Skill 자동 등록",()=>analyzeAndApply(p,"analyze")],
+       ["⚙ Skill 생성","var(--green)","모듈→Skill 자동 변환",()=>analyzeAndApply(p,"skill")],
+       ["🐛 에러 검토","var(--blue)","코드 품질 검토",()=>analyzeAndApply(p,"error")],
+       ["📦 GitHub","var(--amber)","README.md",()=>analyzeAndApply(p,"github")],
+       ["📄 HTML 문서","var(--pink)","사용법 문서",()=>analyzeAndApply(p,"html")],
+       ["📝 MD 문서","var(--text2)","Markdown",()=>analyzeAndApply(p,"md")]
+      ].forEach(([t,c,d,fn])=>ag.appendChild(h("div",{class:"action-card",onClick:fn},h("h5",{style:{color:c}},t),h("p",{},d))));ct.appendChild(ag);
+    }ml.appendChild(ct);}
+  main.appendChild(ml);main.appendChild(renderAI());body.appendChild(main);app.appendChild(body);}
+
+// ===== Init =====
+async function init(){
+  await openDB();
+  load();
+  // Check content availability for each program
+  for(const p of S.programs){
+    if(p.hasContent){
+      const content=await loadContent(p.id);
+      if(content)contentCache[p.id]=content;
+      else{p.hasContent=false;p.contentSize=0;}
+    }
+  }
+  render();
+}
+init();
+</script></body></html>
